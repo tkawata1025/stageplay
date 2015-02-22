@@ -8,7 +8,7 @@
     <Resources>
         <File name="scenario" src="scenario.txt" />
         <File name="stageplayclient" src="packages/stageplayclient.pkg" />
-        <File name="takujianimations" src="packages/takujianimations.pkg" />
+        <File name="takujianimations-0.0.5" src="packages/takujianimations-0.0.5.pkg" />
     </Resources>
     <Topics />
 </Package>

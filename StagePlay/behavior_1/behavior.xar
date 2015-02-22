@@ -825,7 +825,7 @@ class MyClass(GeneratedClass):
                             <Input name="onStop" type="1" type_size="1" nature="3" inner="0" tooltip="Box behavior stops when a signal is received on this input." id="3" />
                             <Output name="succeededClients" type="0" type_size="1" nature="1" inner="0" tooltip="Signal sent when box behavior is finished." id="4" />
                             <Output name="failedClients" type="0" type_size="1" nature="1" inner="0" tooltip="" id="5" />
-                            <Parameter name="package file (.pkg)" inherits_from_parent="0" content_type="4" value="/../packages/takujianimations.pkg" default_value="" tooltip="" id="6" />
+                            <Parameter name="package file (.pkg)" inherits_from_parent="0" content_type="4" value="/../packages/takujianimations-0.0.5.pkg" default_value="" tooltip="" id="6" />
                             <Parameter name="uuid of the application" inherits_from_parent="0" content_type="3" value="takujianimations" default_value="" custom_choice="0" tooltip="" id="7" />
                             <Parameter name="behavior path to execute" inherits_from_parent="0" content_type="3" value="" default_value="" custom_choice="0" tooltip="" id="8" />
                             <Parameter name="clients" inherits_from_parent="0" content_type="3" value="nao;" default_value="" custom_choice="0" tooltip="List the client robot ip address / robot host name. Place ; for listing the next one. Example:&#x0A;nao1.local;nao2.local&#x0A;" id="9" />

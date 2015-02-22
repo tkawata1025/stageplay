@@ -1,5 +1,5 @@
 nao;
-# 一行目にコントロールするロボットの名前を ; 区切りで列挙、３行目以降にシナリオを記述
+# 一行目にコントロールするロボットの名前を ; 区切りで列挙、2行目以降にシナリオを記述
 # シナリオの書式は
 # 開始秒 : ロボット名: コマンド, ロボット名: コマンド, ..
 # コマンドは Animated Say ボックスに渡されるテキストです。 たとえば orange が「こんにちは」と言った後
@@ -12,8 +12,38 @@ nao;
 # また - 記号は一つのストーリーの終了を意味します。ここまでのコマンドが全て終了してから次の行の処理が
 # 進みます。次の行からの時間は再び 0 行から始まります。
 
-0.0: nao: ^start(animations/Stand/Gestures/Hey_1) こんにちは ^wait(animations/Stand/Gestures/Hey_1)
+0: nao: ^mode(disabled) ^start(takujianimations/nao_bow)こんにちは ^wait(takujianimations/nao_bow) 
 ----
-0: nao: ^mode(disabled) ^start(takujianimations/nao_bow)こんにちは ^wait(takujianimations/nao_bow) ^start(takujianimations/nao_point_speaker)ここがスピーカー ^wait(takujianimations/nao_point_speaker)  ^start(takujianimations/nao_point_mic)ここがマイク ^wait(takujianimations/nao_point_mic) ^start(takujianimations/nao_point_camera)ここがカメラ ^wait(takujianimations/nao_point_camera),　pepper:ダミー, nao:よろしくおねがいします
-
+0: pepper: ^mode(disabled) ^start(takujianimations/pepper_bow)こんにちは ^wait(takujianimations/pepper_bow) はじめまして。\pau=500\ お名前はなんですか？
+----
+0: nao: なお、といいます。あなたのなまえは？
+----
+0: pepper: ぺっぱー、といいます。\pau=500\ あなたは何処のロボットですか？
+----
+0: nao: アルデバランロボテックスです。
+----
+0: nao: そうなんですね \pau=500\ わたしと一緒です　\pau=500\ ということは、もしかして耳
+----
+0: nao: ^mode(disabled) ^start(takujianimations/nao_point_speaker) \pau=500\ ここはスピーカー ^wait(takujianimations/nao_point_speaker)
+0: pepper: ^mode(disabled) ^start(takujianimations/pepper_point_speaker) \pau=500\ ここはスピーカー ^wait(takujianimations/pepper_point_speaker)
+----
+0: nao: ですよね。
+0: pepper: ですよね。
+----
+0:nao: ^mode(disabled)^start(takujianimations/nao_point_mic)ここがマイク ^wait(takujianimations/nao_point_mic)
+0:pepper: ^mode(disabled) ^start(takujianimations/pepper_point_mic)ここがマイク ^wait(takujianimations/pepper_point_mic)
+----
+0: nao: ですよね。
+0: pepper: ですよね。
+----
+0:nao: ^mode(disabled) ^start(takujianimations/nao_point_camera)ここがカメラ \pau=1300\ あとここにもカメラ ^wait(takujianimations/nao_point_camera)
+0:pepper: ^mode(disabled) ^start(takujianimations/nao_point_camera)ここがカメラ \pau=1300\ あとここにもカメラ　^wait(takujianimations/pepper_point_camera)
+----
+0: nao: ですよね。
+0: pepper: ですよね。
+----
+0: nao: 共通点多いですね。,pepper: ですよね。
+----
+0: nao: ^mode(disabled) ^start(takujianimations/nao_bow)どうぞよろしくお願いします。 ^wait(takujianimations/nao_bow) 
+0: pepper: ^mode(disabled) ^start(takujianimations/pepper_bow)どうぞよろしくお願いします。 ^wait(takujianimations/pepper_bow)
 

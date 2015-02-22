@@ -1,5 +1,5 @@
 <?xml version='1.0' encoding='UTF-8'?>
-<package version="0.0.16" uuid="stageplayclient">
+<package version="0.0.17" uuid="stageplayclient">
  <names>
   <name lang="en_US">StagePlayClient</name>
  </names>
