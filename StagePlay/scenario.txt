@@ -1,0 +1,19 @@
+nao;
+# 一行目にコントロールするロボットの名前を ; 区切りで列挙、３行目以降にシナリオを記述
+# シナリオの書式は
+# 開始秒 : ロボット名: コマンド, ロボット名: コマンド, ..
+# コマンドは Animated Say ボックスに渡されるテキストです。 たとえば orange が「こんにちは」と言った後
+# blue が手を振りながら「こんにちは」という。また５秒後に white が「こんにちは」というというシナリオは次の
+# ように書きます
+#
+# 0.0: orange: こんにちは, blue: ^start(animations/Stand/Gestures/Hey_1) こんにちは ^wait(animations/Stand/Gestures/Hey_1)
+# 5.0: white: こんにちは
+#
+# また - 記号は一つのストーリーの終了を意味します。ここまでのコマンドが全て終了してから次の行の処理が
+# 進みます。次の行からの時間は再び 0 行から始まります。
+
+0.0: nao: ^start(animations/Stand/Gestures/Hey_1) こんにちは ^wait(animations/Stand/Gestures/Hey_1)
+----
+0: nao: ^mode(disabled) ^start(takujianimations/nao_bow)こんにちは ^wait(takujianimations/nao_bow) ^start(takujianimations/nao_point_speaker)ここがスピーカー ^wait(takujianimations/nao_point_speaker)  ^start(takujianimations/nao_point_mic)ここがマイク ^wait(takujianimations/nao_point_mic) ^start(takujianimations/nao_point_camera)ここがカメラ ^wait(takujianimations/nao_point_camera),　pepper:ダミー, nao:よろしくおねがいします
+
+

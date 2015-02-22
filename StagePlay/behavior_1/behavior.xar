@@ -1,0 +1,1057 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<ChoregrapheProject xmlns="http://www.aldebaran-robotics.com/schema/choregraphe/project.xsd" xar_version="3">
+    <Box name="root" id="-1" localization="8" tooltip="Root box of Choregraphe&apos;s behavior. Highest level possible." x="0" y="0">
+        <bitmap>media/images/box/root.png</bitmap>
+        <script language="4">
+            <content>
+                <![CDATA[]]>
+</content>
+        </script>
+        <Input name="onLoad" type="1" type_size="1" nature="0" inner="1" tooltip="Signal sent when diagram is loaded." id="1" />
+        <Input name="onStart" type="1" type_size="1" nature="2" inner="0" tooltip="Box behavior starts when a signal is received on this input." id="2" />
+        <Input name="onStop" type="1" type_size="1" nature="3" inner="0" tooltip="Box behavior stops when a signal is received on this input." id="3" />
+        <Output name="onStopped" type="1" type_size="1" nature="1" inner="0" tooltip="ボックス動作の終了時に信号を送る。" id="4" />
+        <Timeline enable="0">
+            <BehaviorLayer name="behavior_layer1">
+                <BehaviorKeyframe name="keyframe1" index="1">
+                    <Diagram>
+                        <Box name="client setup" id="4" localization="8" tooltip="This box contains a basic python script and can be used to create any python script box you would like.&#x0A;&#x0A;To edit its script, double-click on it." x="407" y="46">
+                            <bitmap>media/images/box/box-python-script.png</bitmap>
+                            <script language="4">
+                                <content>
+                                    <![CDATA[import qi, time
+
+class MyClass(GeneratedClass):
+    def __init__(self):
+        GeneratedClass.__init__(self)
+
+    def onLoad(self):
+        self.sclients = []
+
+    def onUnload(self):
+        import re
+
+        path = self.getParameter("behavior path to execute")
+        uuid = self.getParameter("uuid of the application")
+        removeApp = self.getParameter("remove app at termination")
+
+        self.logger.info("Stop running client behaviors..")
+        session = qi.Session()
+        for client in self.sclients:
+            self.logger.info("Stopping behavior running at %s" % client)
+            if isinstance(client, str) and len(client) > 0:
+
+                clientAddr = client
+                if re.match(".*\..*\..*\..*", clientAddr) == None:
+                    clientAddr = clientAddr + ".local"
+
+                url = "tcp://" + clientAddr + ":9559"
+                session.connect(url)
+                bm = session.service("ALBehaviorManager")
+                self.logger.info("Stop behavior %s" % path)
+                retry = 3
+                success = False
+                while retry > 0 and success == False:
+                    try:
+                        bm.stopBehavior(path)
+                        success = True
+                    except Exception as e:
+                        self.logger.info("  ... failed. retrying...")
+                        retry = retry - 1
+
+                retry = 3
+                success = False
+                if removeApp:
+                    self.logger.info("removing the package..")
+                    pm = session.service("PackageManager")
+                    while retry > 0 and success == False:
+                        try:
+                            pm.removePkg(uuid)
+                            success = True
+                        except Exception as e:
+                            self.logger.info("  ... failed. retrying...")
+                            retry = retry - 1
+
+
+    def onInput_onStart(self):
+
+        framemanager = ALProxy("ALFrameManager")
+
+        session = qi.Session()
+
+        pkg = self.getParameter("package file (.pkg)")
+        uuid = self.getParameter("uuid of the application")
+        path = self.getParameter("behavior path to execute")
+        clients = self.getParameter("clients").split(";")
+        self.logger.info("Installing app %s to clients.." % pkg)
+
+        fclients = []
+        if len(pkg) > 0 and len(uuid) > 0 and len(path) > 0:
+            pkgPath = framemanager.getBehaviorPath(self.behaviorId) + pkg
+            for client in clients:
+
+                client = str(client).strip()
+                if len(client) == 0:
+                    continue
+
+                success = False
+                self.logger.info("Installing to %s" % client)
+                if isinstance(client, str) and len(client) > 0:
+
+                    url = "tcp://" + client + ":9559"
+                    session.connect(url)
+                    pm = session.service("PackageManager")
+
+                    installResult = False
+
+                    if pm.hasPackage(uuid):
+                        if self.getParameter("fourceUpdate"):
+                            try:
+                                pm.removePkg(uuid)
+                            except Exception as e:
+                                pass
+                        else:
+                            self.logger.info("%s already have the app. Not install..." % client)
+                            installResult = True
+
+                    retry = 3
+                    while retry > 0 and installResult == False:
+                        installResult = pm.install(pkgPath)
+                        if installResult == False:
+                            time.sleep(1)
+                            retry = retry - 1
+                            self.logger.info("  ... Installation failed. retrying...")
+
+                        if installResult:
+                            self.logger.info(" ...Installation success!")
+                        else:
+                            self.logger.info(" ...Installation failed!")
+
+                    if installResult:
+                        bm = session.service("ALBehaviorManager")
+                        retry = 3
+                        self.logger.info("Run behavior %s" % path)
+                        while retry > 0 and success == False:
+                            try:
+                                bm.startBehavior(path)
+                                success = True
+                            except Exception as e:
+                                self.logger.info("  ... Running failed. retrying...")
+                                retry = retry - 1
+
+                if success:
+                    self.sclients.append(client)
+                else:
+                    fclients.append(client)
+
+        if len(fclients) > 0:
+            self.failedClients(fclients)
+
+        if len(self.sclients) > 0:
+            self.succeededClients(self.sclients)
+
+    def onInput_onStop(self):
+        self.onUnload() #it is recommended to reuse the clean-up as the box is stopped
+        self.onStopped(p) #activate the output of the box]]>
+</content>
+                            </script>
+                            <Input name="onLoad" type="1" type_size="1" nature="0" inner="1" tooltip="Signal sent when diagram is loaded." id="1" />
+                            <Input name="onStart" type="1" type_size="1" nature="2" inner="0" tooltip="Box behavior starts when a signal is received on this input." id="2" />
+                            <Input name="onStop" type="1" type_size="1" nature="3" inner="0" tooltip="Box behavior stops when a signal is received on this input." id="3" />
+                            <Output name="succeededClients" type="0" type_size="1" nature="1" inner="0" tooltip="Signal sent when box behavior is finished." id="4" />
+                            <Output name="failedClients" type="0" type_size="1" nature="1" inner="0" tooltip="" id="5" />
+                            <Parameter name="package file (.pkg)" inherits_from_parent="0" content_type="4" value="/../packages/stageplayclient.pkg" default_value="" tooltip="" id="6" />
+                            <Parameter name="uuid of the application" inherits_from_parent="0" content_type="3" value="stageplayclient" default_value="" custom_choice="0" tooltip="" id="7" />
+                            <Parameter name="behavior path to execute" inherits_from_parent="0" content_type="3" value="stageplayclient/behavior_1" default_value="" custom_choice="0" tooltip="" id="8" />
+                            <Parameter name="clients" inherits_from_parent="0" content_type="3" value="nao;" default_value="" custom_choice="0" tooltip="List the client robot ip address / robot host name. Place ; for listing the next one. Example:&#x0A;nao1.local;nao2.local&#x0A;" id="9" />
+                            <Parameter name="remove app at termination" inherits_from_parent="0" content_type="0" value="1" default_value="1" tooltip="" id="10" />
+                            <Parameter name="fourceUpdate" inherits_from_parent="0" content_type="0" value="0" default_value="0" tooltip="" id="11" />
+                        </Box>
+                        <Box name="RemoteSynchronizerServer (1)" id="3" localization="8" tooltip="Enter tooltip here" x="140" y="204">
+                            <bitmap>media/images/box/box-diagram.png</bitmap>
+                            <script language="4">
+                                <content>
+                                    <![CDATA[]]>
+</content>
+                            </script>
+                            <Input name="onLoad" type="1" type_size="1" nature="0" inner="1" tooltip="Signal sent when diagram is loaded." id="1" />
+                            <Input name="onStart" type="0" type_size="1" nature="2" inner="0" tooltip="This input has been automatically generated&#x0A;by converting several boxes into a single box." id="2" />
+                            <Input name="onStop" type="1" type_size="1" nature="3" inner="0" tooltip="" id="3" />
+                            <Input name="toClient" type="0" type_size="1" nature="1" inner="0" tooltip="" id="4" />
+                            <Output name="initialized" type="1" type_size="1" nature="2" inner="0" tooltip="" id="5" />
+                            <Output name="onError" type="1" type_size="1" nature="2" inner="0" tooltip="" id="6" />
+                            <Output name="fromClient" type="0" type_size="1" nature="2" inner="0" tooltip="" id="7" />
+                            <Timeline enable="0">
+                                <BehaviorLayer name="behavior_layer1">
+                                    <BehaviorKeyframe name="keyframe1" index="1">
+                                        <Diagram>
+                                            <Box name="Subscribe to MicroEvent" id="7" localization="8" tooltip="Subscribes to an event in NAOqi&apos;s shared memory.&#x0A;When subscribed, the output will be triggered every time the event is raised." x="252" y="247">
+                                                <bitmap>media/images/box/sensors/STM.png</bitmap>
+                                                <script language="4">
+                                                    <content>
+                                                        <![CDATA[class MyClass(GeneratedClass):
+    def __init__(self):
+        GeneratedClass.__init__(self)
+        pass
+
+    def onLoad(self):
+        self.BIND_PYTHON(self.getName(), "onEventCallback")
+        self.memory = ALProxy("ALMemory")
+
+    def onUnload(self):
+        self.memory = None
+
+    def onInput_onStart(self):
+        self.memory.subscribeToEvent(self.getParameter("key"), self.getName(), "onEventCallback")
+
+    def onInput_onStop(self):
+        self.onStopped()
+
+    def onEventCallback(self, key, value, message):
+        self.onEvent(value)]]>
+</content>
+                                                </script>
+                                                <Input name="onLoad" type="1" type_size="1" nature="0" inner="1" tooltip="Signal sent when diagram is loaded." id="1" />
+                                                <Input name="onStart" type="1" type_size="1" nature="2" inner="0" tooltip="Box behavior starts when a signal is received on this input." id="2" />
+                                                <Input name="onStop" type="1" type_size="1" nature="3" inner="0" tooltip="" id="3" />
+                                                <Output name="onStopped" type="1" type_size="1" nature="1" inner="0" tooltip="Signal sent when box behavior is finished. It contains the retrieved value from ALMemory." id="4" />
+                                                <Output name="onError" type="3" type_size="1" nature="1" inner="0" tooltip="Output when error is raised by the behavior. Contains the error message." id="5" />
+                                                <Output name="onEvent" type="0" type_size="1" nature="2" inner="0" tooltip="" id="6" />
+                                                <Parameter name="key" inherits_from_parent="0" content_type="3" value="RemoteSynchronizer/ToServerEvent" default_value="MyApplication/MyData" custom_choice="0" tooltip="" id="7" />
+                                            </Box>
+                                            <Box name="Event Controller Server" id="1" localization="8" tooltip="This box contains a basic python script and can be used to create any python script box you would like.&#x0A;&#x0A;To edit its script, double-click on it." x="471" y="56">
+                                                <bitmap>media/images/box/box-python-script.png</bitmap>
+                                                <script language="4">
+                                                    <content>
+                                                        <![CDATA[import time
+
+class MyClass(GeneratedClass):
+
+
+    EVENTNAME_TOSERVER = "RemoteSynchronizer/ToServerEvent"
+    EVENTNAME_TOCLIENT = "RemoteSynchronizer/ToClientEvent"
+
+    def __init__(self):
+        GeneratedClass.__init__(self)
+
+    def onLoad(self):
+        self.clients = {}
+
+        s = ALProxy("ALSystem")
+        self.myContactName = s.robotName() + ".local:9559"
+        self.logger.info("My contact name  :  %s" % self.myContactName)
+
+        m = ALProxy("ALMemory")
+        m.declareEvent(self.EVENTNAME_TOSERVER)
+
+
+
+
+    def onUnload(self):
+        #self.logger.info("Unloading RemoteSynchronizerServer. Sending good bye message to clients.")
+        #msg = self.myContactName + ",BYE"
+        #for value in self.clients:
+        #    value.raiseEvent(self.EVENTNAME_TOCLIENT, msg)
+        pass
+
+    def onInput_onStart(self, cs):
+        import re
+
+        for client in cs:
+            if isinstance(client, str) and len(client) > 0:
+                retry = 10
+                cmemory = None
+                clientAddr = client
+                if re.match(".*\..*\..*\..*", clientAddr) == None:
+                    clientAddr = clientAddr + ".local"
+
+                while retry > 0 and cmemory == None:
+                    try:
+                        cmemory = ALProxy("ALMemory", clientAddr, 9559)
+                    except Exception as e:
+                        self.logger.error(e)
+                        cmemory = None
+                        time.sleep(1)
+                        self.logger.info("Connection to %s failed. Retrying.." % client)
+
+                    retry = retry - 1
+
+                if cmemory != None:
+                    self.clients[str(client)] = cmemory
+                else:
+                    self.logger.info("Connection to %s failed. Couldn't initialize RemoteSynchronizerServer.." % client)
+                    self.onFail()
+                    return
+
+        for c in self.clients:
+            self.clients[c].raiseEvent(self.EVENTNAME_TOCLIENT, [self.myContactName, None, None])
+
+        self.doInitialize()
+
+    def onInput_onStop(self):
+        self.onUnload() #it is recommended to reuse the clean-up as the box is stopped
+        self.onStopped() #activate the output of the box
+
+
+    def onInput_fromClient(self, p):
+        self.onEvent(p)
+
+    def onInput_toClient(self, p):
+        client = p[1].strip()
+        if client in self.clients:
+            self.clients[client].post.raiseEvent(self.EVENTNAME_TOCLIENT, [None, p[0], p[2]])
+        else:
+            self.logger.info("Client : (%s) not found.. Ignore command: %s" % (client, p[2]))
+            self.onEvent([p[0]])]]>
+</content>
+                                                </script>
+                                                <Input name="onLoad" type="1" type_size="1" nature="0" inner="1" tooltip="Signal sent when diagram is loaded." id="1" />
+                                                <Input name="onStart" type="0" type_size="1" nature="2" inner="0" tooltip="Box behavior starts when a signal is received on this input." id="2" />
+                                                <Input name="onStop" type="1" type_size="1" nature="3" inner="0" tooltip="Box behavior stops when a signal is received on this input." id="3" />
+                                                <Input name="toClient" type="0" type_size="1" nature="1" inner="0" tooltip="" id="4" />
+                                                <Input name="fromClient" type="0" type_size="1" nature="1" inner="0" tooltip="" id="5" />
+                                                <Output name="onStopped" type="1" type_size="1" nature="1" inner="0" tooltip="Signal sent when box behavior is finished." id="6" />
+                                                <Output name="onFail" type="1" type_size="1" nature="2" inner="0" tooltip="" id="7" />
+                                                <Output name="doInitialize" type="1" type_size="1" nature="2" inner="0" tooltip="" id="8" />
+                                                <Output name="onEvent" type="0" type_size="1" nature="2" inner="0" tooltip="" id="9" />
+                                            </Box>
+                                            <Link inputowner="7" indexofinput="2" outputowner="1" indexofoutput="8" />
+                                            <Link inputowner="1" indexofinput="3" outputowner="7" indexofoutput="5" />
+                                            <Link inputowner="1" indexofinput="3" outputowner="7" indexofoutput="4" />
+                                            <Link inputowner="0" indexofinput="6" outputowner="1" indexofoutput="7" />
+                                            <Link inputowner="0" indexofinput="5" outputowner="1" indexofoutput="8" />
+                                            <Link inputowner="1" indexofinput="2" outputowner="0" indexofoutput="2" />
+                                            <Link inputowner="1" indexofinput="5" outputowner="7" indexofoutput="6" />
+                                            <Link inputowner="0" indexofinput="7" outputowner="1" indexofoutput="9" />
+                                            <Link inputowner="1" indexofinput="4" outputowner="0" indexofoutput="4" />
+                                        </Diagram>
+                                    </BehaviorKeyframe>
+                                </BehaviorLayer>
+                            </Timeline>
+                        </Box>
+                        <Box name="ScenarioPlayer" id="10" localization="8" tooltip="This box contains a basic python script and can be used to create any python script box you would like.&#x0A;&#x0A;To edit its script, double-click on it." x="124" y="13">
+                            <bitmap>media/images/box/box-python-script.png</bitmap>
+                            <script language="4">
+                                <content>
+                                    <![CDATA[# coding: UTF-8
+
+import codecs
+
+class MyClass(GeneratedClass):
+    def __init__(self):
+        GeneratedClass.__init__(self)
+
+    def onLoad(self):
+        self.forceQuit = False
+        self.requestedCommands = {}
+        self.commandNumber = 0
+        #put initialization code here
+        pass
+
+    def onInput_initialize(self):
+        framemanager = ALProxy("ALFrameManager")
+
+        scenarioFile = self.getParameter("scenario file (.txt)")
+        scenarioFilePath = framemanager.getBehaviorPath(self.behaviorId) + scenarioFile
+        self.logger.info(repr(scenarioFilePath))
+        f = codecs.open(scenarioFilePath, encoding='utf-8')
+        lines = f.readlines()
+        clients = lines[0].encode("utf-8")
+        self.logger.info("Clients : %s" % clients)
+        self.setupClients(clients)
+
+
+    def onUnload(self):
+        self.forceQuit = True
+
+    def onInput_onStart(self):
+
+        framemanager = ALProxy("ALFrameManager")
+
+        scenarioFile = self.getParameter("scenario file (.txt)")
+        scenarioFilePath = framemanager.getBehaviorPath(self.behaviorId) + scenarioFile
+        f = codecs.open(scenarioFilePath, encoding='utf-8')
+        commands = []
+        lines = f.readlines()
+        for line in lines:
+            tm = line.find(":")
+            sp = line.find("-")
+
+            if len(line) == 0 or line[0] == "#":
+                continue
+
+            if tm < 0 and sp < 0:
+                pass
+            elif tm > 0 and (sp < 0 or tm < sp):
+                line = line.strip()
+                if len(line) > tm + 1:
+                    commandParts = []
+                    cl = line[tm+1:].split(",")
+                    for c in cl:
+                        sp = c.find(":")
+                        if sp > 0:
+                            commandParts.append([(c[:sp]).encode("utf-8"),(c[sp+1:]).encode("utf-8")])
+                        else:
+                            commandParts.append(["*",c.encode("utf-8")])
+
+                commands.append([float(line[:tm]), commandParts])
+
+            elif sp >= 0:
+                self.logger.info("Wait for previous senario to complete..")
+                self._parseCommand(commands)
+                commands = []
+
+        if len(commands) > 0:
+            self._parseCommand(commands)
+
+        self._waitRunningCommands()
+        self.onStopped()
+
+
+    def onInput_fromClient(self,p):
+        self._doNextCommand(p)
+
+
+    def _doNextCommand(self, p):
+
+        if len(p) != 1:
+            return
+
+        n = 0
+        try:
+            n = int(p[0])
+            command = self.requestedCommands[n]
+        except Exception as e:
+            #self.logger.info("## command:%s doesn't exist. Followings are commands waiting for the completion." % str(p))
+            #for r in self.requestedCommands:
+            #    self.logger.info(r)
+            return
+
+        nextCommand = command[0]
+
+        del self.requestedCommands[n]
+        if nextCommand != None:
+            if nextCommand in self.requestedCommands:
+                self.command([nextCommand, self.requestedCommands[nextCommand][1],self.requestedCommands[nextCommand][2]])
+
+    def _waitRunningCommands(self):
+        import time
+
+        #wait for previous commands to complete. Wait 5min for maxium
+        cnt = 5*60*2
+        while len(self.requestedCommands) > 0 and cnt > 0 and not self.forceQuit:
+            time.sleep(0.5)
+            cnt = cnt - 1
+
+
+    def _parseCommand(self,commands):
+        import time
+
+        self._waitRunningCommands()
+        stime = time.time()
+
+        while len(commands) > 0 and not self.forceQuit:
+            idx = len(commands) - 1
+            cur = time.time() - stime
+            while idx >= 0 and not self.forceQuit:
+                if commands[idx][0] <= cur:
+                    initialCommandNumberForThisQueue = self._issueCommandNumber()
+                    prevCommandNumber = initialCommandNumberForThisQueue
+                    self.requestedCommands[prevCommandNumber]= [None, None]
+                    self.logger.info("Execute time: %.2f %.2f" % (cur, commands[idx][0]))
+                    for c in commands[idx][1]:
+                        commandNumber = self._issueCommandNumber()
+                        self.requestedCommands[prevCommandNumber][0] = commandNumber
+                        self.requestedCommands[commandNumber] = [None, c[0], c[1]]
+                        prevCommandNumber = commandNumber
+                    commands.pop(idx)
+
+                    self._doNextCommand([initialCommandNumberForThisQueue])
+
+                idx = idx - 1
+
+            time.sleep(0.1)
+
+        self.logger.info("Done!!")
+
+    def _issueCommandNumber(self):
+        self.commandNumber = self.commandNumber  + 1
+        return self.commandNumber
+
+
+
+    def onInput_onStop(self):
+        self.onUnload() #it is recommended to reuse the clean-up as the box is stopped
+        self.onStopped() #activate the output of the box]]>
+</content>
+                            </script>
+                            <Input name="onLoad" type="1" type_size="1" nature="0" inner="1" tooltip="Signal sent when diagram is loaded." id="1" />
+                            <Input name="onStart" type="1" type_size="1" nature="2" inner="0" tooltip="Box behavior starts when a signal is received on this input." id="2" />
+                            <Input name="onStop" type="1" type_size="1" nature="3" inner="0" tooltip="Box behavior stops when a signal is received on this input." id="3" />
+                            <Input name="initialize" type="1" type_size="1" nature="1" inner="0" tooltip="" id="4" />
+                            <Input name="fromClient" type="0" type_size="1" nature="1" inner="0" tooltip="" id="5" />
+                            <Output name="onStopped" type="1" type_size="1" nature="1" inner="0" tooltip="Signal sent when box behavior is finished." id="6" />
+                            <Output name="command" type="0" type_size="1" nature="2" inner="0" tooltip="" id="7" />
+                            <Output name="setupClients" type="3" type_size="1" nature="2" inner="0" tooltip="" id="8" />
+                            <Parameter name="scenario file (.txt)" inherits_from_parent="0" content_type="4" value="/../scenario.txt" default_value="" tooltip="" id="9" />
+                        </Box>
+                        <Box name="Tactile Head" id="8" localization="8" tooltip="Detect touch on head tactile sensor." x="494" y="201">
+                            <bitmap>media/images/box/sensors/tactileHead.png</bitmap>
+                            <script language="4">
+                                <content>
+                                    <![CDATA[class MyClass(GeneratedClass):
+    def __init__(self):
+        GeneratedClass.__init__(self, False)
+
+    def onLoad(self):
+        self.bIsRunning = False
+
+    def onUnload(self):
+        self.bIsRunning = False
+
+    def onInput_onStart(self):
+        self.bIsRunning = True
+
+    def onInput_onStop(self):
+        if( self.bIsRunning ):
+            self.onUnload() #~ it is usually a good idea to call onUnload of this box in a onStop method, as the code written in onUnload is used to finish the working of the box as well
+            self.onStopped() #~ activate output of the box
+        pass]]>
+</content>
+                            </script>
+                            <Input name="onLoad" type="1" type_size="1" nature="0" inner="1" tooltip="Signal sent when diagram is loaded." id="1" />
+                            <Input name="onStart" type="1" type_size="1" nature="2" inner="0" tooltip="Box behavior starts when a signal is received on this input." id="2" />
+                            <Input name="onStop" type="1" type_size="1" nature="3" inner="0" tooltip="Box behavior stops when a signal is received on this input." id="3" />
+                            <Input name="FrontTactilTouched" type="0" type_size="1" nature="4" stm_value_name="FrontTactilTouched" inner="1" tooltip="Connected to ALMemory. Will be stimulated every time the value subscribed to changes, respecting the refresh period." id="4" />
+                            <Input name="MiddleTactilTouched" type="0" type_size="1" nature="4" stm_value_name="MiddleTactilTouched" inner="1" tooltip="Connected to ALMemory. Will be stimulated every time the value subscribed to changes, respecting the refresh period." id="5" />
+                            <Input name="RearTactilTouched" type="0" type_size="1" nature="4" stm_value_name="RearTactilTouched" inner="1" tooltip="Connected to ALMemory. Will be stimulated every time the value subscribed to changes, respecting the refresh period." id="6" />
+                            <Output name="onStopped" type="1" type_size="1" nature="1" inner="0" tooltip="Signal sent when box behavior is stopped." id="7" />
+                            <Output name="frontTouched" type="1" type_size="1" nature="2" inner="0" tooltip="The front tactile head sensor was touched." id="8" />
+                            <Output name="middleTouched" type="1" type_size="1" nature="2" inner="0" tooltip="The middle tactile head sensor was touched." id="9" />
+                            <Output name="rearTouched" type="1" type_size="1" nature="2" inner="0" tooltip="The rear tactile head sensor was touched." id="10" />
+                            <Timeline enable="0">
+                                <BehaviorLayer name="behavior_layer1">
+                                    <BehaviorKeyframe name="keyframe1" index="1">
+                                        <Diagram>
+                                            <Box name="If &gt; 0" id="1" localization="8" tooltip="Transmit only if value is &gt; 0." x="260" y="17">
+                                                <bitmap>media/images/box/box-diagram.png</bitmap>
+                                                <script language="4">
+                                                    <content>
+                                                        <![CDATA[class MyClass(GeneratedClass):
+    def __init__(self):
+        GeneratedClass.__init__(self, False)
+
+    def onLoad(self):
+        #~ puts code for box initialization here
+        pass
+
+    def onUnload(self):
+        #~ puts code for box cleanup here
+        pass
+
+    def onInput_onStart(self, p):
+        if(p > 0):
+            self.onStopped() #~ activate output of the box
+        pass
+
+    def onInput_onStop(self):
+        self.onUnload() #~ it is usually a good idea to call onUnload of this box in a onStop method, as the code written in onUnload is used to finish the working of the box as well
+        pass]]>
+</content>
+                                                </script>
+                                                <Input name="onLoad" type="1" type_size="1" nature="0" inner="1" tooltip="Signal sent when diagram is loaded." id="1" />
+                                                <Input name="onStart" type="0" type_size="1" nature="2" inner="0" tooltip="Box behavior starts when a signal is received on this input." id="2" />
+                                                <Input name="onStop" type="1" type_size="1" nature="3" inner="0" tooltip="Box behavior stops when a signal is received on this input." id="3" />
+                                                <Output name="onStopped" type="1" type_size="1" nature="1" inner="0" tooltip="Signal sent when box behavior is finished." id="4" />
+                                            </Box>
+                                            <Box name="If &gt; 0" id="2" localization="8" tooltip="Transmit only if value is &gt; 0." x="256" y="119">
+                                                <bitmap>media/images/box/box-diagram.png</bitmap>
+                                                <script language="4">
+                                                    <content>
+                                                        <![CDATA[class MyClass(GeneratedClass):
+    def __init__(self):
+        GeneratedClass.__init__(self, False)
+
+    def onLoad(self):
+        #~ puts code for box initialization here
+        pass
+
+    def onUnload(self):
+        #~ puts code for box cleanup here
+        pass
+
+    def onInput_onStart(self, p):
+        if(p > 0):
+            self.onStopped() #~ activate output of the box
+        pass
+
+    def onInput_onStop(self):
+        self.onUnload() #~ it is usually a good idea to call onUnload of this box in a onStop method, as the code written in onUnload is used to finish the working of the box as well
+        pass]]>
+</content>
+                                                </script>
+                                                <Input name="onLoad" type="1" type_size="1" nature="0" inner="1" tooltip="Signal sent when diagram is loaded." id="1" />
+                                                <Input name="onStart" type="0" type_size="1" nature="2" inner="0" tooltip="Box behavior starts when a signal is received on this input." id="2" />
+                                                <Input name="onStop" type="1" type_size="1" nature="3" inner="0" tooltip="Box behavior stops when a signal is received on this input." id="3" />
+                                                <Output name="onStopped" type="1" type_size="1" nature="1" inner="0" tooltip="Signal sent when box behavior is finished." id="4" />
+                                            </Box>
+                                            <Box name="If &gt; 0" id="3" localization="8" tooltip="Transmit only if value is &gt; 0." x="261" y="223">
+                                                <bitmap>media/images/box/box-diagram.png</bitmap>
+                                                <script language="4">
+                                                    <content>
+                                                        <![CDATA[class MyClass(GeneratedClass):
+    def __init__(self):
+        GeneratedClass.__init__(self, False)
+
+    def onLoad(self):
+        #~ puts code for box initialization here
+        pass
+
+    def onUnload(self):
+        #~ puts code for box cleanup here
+        pass
+
+    def onInput_onStart(self, p):
+        if(p > 0):
+            self.onStopped() #~ activate output of the box
+        pass
+
+    def onInput_onStop(self):
+        self.onUnload() #~ it is usually a good idea to call onUnload of this box in a onStop method, as the code written in onUnload is used to finish the working of the box as well
+        pass]]>
+</content>
+                                                </script>
+                                                <Input name="onLoad" type="1" type_size="1" nature="0" inner="1" tooltip="Signal sent when diagram is loaded." id="1" />
+                                                <Input name="onStart" type="0" type_size="1" nature="2" inner="0" tooltip="Box behavior starts when a signal is received on this input." id="2" />
+                                                <Input name="onStop" type="1" type_size="1" nature="3" inner="0" tooltip="Box behavior stops when a signal is received on this input." id="3" />
+                                                <Output name="onStopped" type="1" type_size="1" nature="1" inner="0" tooltip="Signal sent when box behavior is finished." id="4" />
+                                            </Box>
+                                            <Link inputowner="1" indexofinput="2" outputowner="0" indexofoutput="4" />
+                                            <Link inputowner="0" indexofinput="8" outputowner="1" indexofoutput="4" />
+                                            <Link inputowner="2" indexofinput="2" outputowner="0" indexofoutput="5" />
+                                            <Link inputowner="0" indexofinput="9" outputowner="2" indexofoutput="4" />
+                                            <Link inputowner="3" indexofinput="2" outputowner="0" indexofoutput="6" />
+                                            <Link inputowner="0" indexofinput="10" outputowner="3" indexofoutput="4" />
+                                        </Diagram>
+                                    </BehaviorKeyframe>
+                                </BehaviorLayer>
+                            </Timeline>
+                            <Resource name="Head-sequence" type="Lock" timeout="0" />
+                        </Box>
+                        <Box name="Wait" id="6" localization="8" tooltip="Wait a moment before sending a signal on the output. &#x0A;Can be stopped anytime. &#x0A;Stimulating the input again before output is activated restarts the waiting period.&#x0A;" x="281" y="56">
+                            <bitmap>media/images/box/wait.png</bitmap>
+                            <script language="4">
+                                <content>
+                                    <![CDATA[class MyClass(GeneratedClass):
+    def __init__(self):
+        GeneratedClass.__init__(self, False)
+
+    def onLoad(self):
+        self.waiting = None
+
+    def onUnload(self):
+        self.cancelWaiting()
+
+    def triggerOutput(self):
+        self.timerOutput()
+
+    def cancelWaiting(self):
+        if self.waiting:
+            self.waiting.cancel()
+        self.waiting = None
+
+    def onInput_onStart(self):
+        self.cancelWaiting()
+        import qi
+        self.waiting = qi.async(self.triggerOutput, delay=int(self.getParameter("Timeout (s)") * 1000 * 1000))
+
+    def onInput_onStop(self):
+        if self.getParameter("Trigger timerOutput if cancelled") and self.waiting and self.waiting.isRunning():
+            self.timerOutput()
+        self.onUnload()]]>
+</content>
+                            </script>
+                            <Input name="onLoad" type="1" type_size="1" nature="0" inner="1" tooltip="Signal sent when diagram is loaded." id="1" />
+                            <Input name="onStart" type="1" type_size="1" nature="2" inner="0" tooltip="Start the Wait box with the configured timeout value." id="2" />
+                            <Input name="onStop" type="1" type_size="1" nature="3" inner="0" tooltip="Stop the wait and stimulate the output." id="3" />
+                            <Output name="timerOutput" type="1" type_size="1" nature="1" inner="0" tooltip="Send a bang once time set in parameters is elapsed, or if the box is stopped and the appropriate parameter is set." id="4" />
+                            <Parameter name="Timeout (s)" inherits_from_parent="0" content_type="2" value="1" default_value="1" min="0" max="5000" tooltip="Duration the box waits before stimulating the output." id="5" />
+                            <Parameter name="Trigger timerOutput if cancelled" inherits_from_parent="0" content_type="0" value="0" default_value="1" tooltip="If the box is currently waiting and cancelled, output will be stimulated." id="6" />
+                        </Box>
+                        <Box name="client setup - asset files" id="1" localization="8" tooltip="This box contains a basic python script and can be used to create any python script box you would like.&#x0A;&#x0A;To edit its script, double-click on it." x="542" y="46">
+                            <bitmap>media/images/box/box-python-script.png</bitmap>
+                            <script language="4">
+                                <content>
+                                    <![CDATA[import qi, time
+
+class MyClass(GeneratedClass):
+    def __init__(self):
+        GeneratedClass.__init__(self)
+
+    def onLoad(self):
+        self.sclients = []
+
+    def onUnload(self):
+        import re
+
+        path = self.getParameter("behavior path to execute").strip()
+        uuid = self.getParameter("uuid of the application").strip()
+        removeApp = self.getParameter("remove app at termination")
+
+        self.logger.info("Stop running client behaviors..")
+        session = qi.Session()
+        for client in self.sclients:
+            self.logger.info("Stopping behavior running at %s" % client)
+            if isinstance(client, str) and len(client) > 0:
+
+                clientAddr = client
+                if re.match(".*\..*\..*\..*", clientAddr) == None:
+                    clientAddr = clientAddr + ".local"
+
+                url = "tcp://" + clientAddr + ":9559"
+                session.connect(url)
+                bm = session.service("ALBehaviorManager")
+                self.logger.info("Stop behavior %s" % path)
+                retry = 3
+                success = False
+                while retry > 0 and success == False:
+                    try:
+                        if len(path) > 0:
+                            bm.stopBehavior(path)
+                        success = True
+                    except Exception as e:
+                        self.logger.info("  ... failed. retrying...")
+                        retry = retry - 1
+
+                retry = 3
+                success = False
+                if removeApp:
+                    self.logger.info("removing the package..")
+                    pm = session.service("PackageManager")
+                    while retry > 0 and success == False:
+                        try:
+                            pm.removePkg(uuid)
+                            success = True
+                        except Exception as e:
+                            self.logger.info("  ... failed. retrying...")
+                            retry = retry - 1
+
+
+    def onInput_onStart(self):
+
+        framemanager = ALProxy("ALFrameManager")
+
+        session = qi.Session()
+
+        pkg = self.getParameter("package file (.pkg)").strip()
+        uuid = self.getParameter("uuid of the application").strip()
+        path = self.getParameter("behavior path to execute").strip()
+        clients = self.getParameter("clients").split(";")
+        self.logger.info("Installing app %s to clients.." % pkg)
+
+        fclients = []
+        if len(pkg) > 0 and len(uuid) > 0:
+            pkgPath = framemanager.getBehaviorPath(self.behaviorId) + pkg
+            for client in clients:
+
+                client = str(client).strip()
+                if len(client) == 0:
+                    continue
+
+                success = False
+                self.logger.info("Installing to %s" % client)
+                if isinstance(client, str) and len(client) > 0:
+
+                    url = "tcp://" + client + ":9559"
+                    session.connect(url)
+                    pm = session.service("PackageManager")
+
+                    installResult = False
+
+                    if pm.hasPackage(uuid):
+                        if self.getParameter("fourceUpdate"):
+                            try:
+                                pm.removePkg(uuid)
+                            except Exception as e:
+                                pass
+                        else:
+                            self.logger.info("%s already have the app. Not install..." % client)
+                            installResult = True
+
+                    retry = 3
+                    while retry > 0 and installResult == False:
+                        installResult = pm.install(pkgPath)
+                        if installResult == False:
+                            time.sleep(1)
+                            retry = retry - 1
+                            self.logger.info("  ... Installation failed. retrying...")
+
+                        if installResult:
+                            self.logger.info(" ...Installation success!")
+                        else:
+                            self.logger.info(" ...Installation failed!")
+
+                    if installResult:
+                        bm = session.service("ALBehaviorManager")
+                        retry = 3
+                        self.logger.info("Run behavior %s" % path)
+                        while retry > 0 and success == False:
+                            try:
+                                if len(path) > 0:
+                                    bm.startBehavior(path)
+                                success = True
+                            except Exception as e:
+                                self.logger.info("  ... Running failed. retrying...")
+                                retry = retry - 1
+
+                if success:
+                    self.sclients.append(client)
+                else:
+                    fclients.append(client)
+
+        if len(fclients) > 0:
+            self.failedClients(fclients)
+
+        if len(self.sclients) > 0:
+            self.succeededClients(self.sclients)
+
+    def onInput_onStop(self):
+        self.onUnload() #it is recommended to reuse the clean-up as the box is stopped
+        self.onStopped(p) #activate the output of the box]]>
+</content>
+                            </script>
+                            <Input name="onLoad" type="1" type_size="1" nature="0" inner="1" tooltip="Signal sent when diagram is loaded." id="1" />
+                            <Input name="onStart" type="1" type_size="1" nature="2" inner="0" tooltip="Box behavior starts when a signal is received on this input." id="2" />
+                            <Input name="onStop" type="1" type_size="1" nature="3" inner="0" tooltip="Box behavior stops when a signal is received on this input." id="3" />
+                            <Output name="succeededClients" type="0" type_size="1" nature="1" inner="0" tooltip="Signal sent when box behavior is finished." id="4" />
+                            <Output name="failedClients" type="0" type_size="1" nature="1" inner="0" tooltip="" id="5" />
+                            <Parameter name="package file (.pkg)" inherits_from_parent="0" content_type="4" value="/../packages/takujianimations.pkg" default_value="" tooltip="" id="6" />
+                            <Parameter name="uuid of the application" inherits_from_parent="0" content_type="3" value="takujianimations" default_value="" custom_choice="0" tooltip="" id="7" />
+                            <Parameter name="behavior path to execute" inherits_from_parent="0" content_type="3" value="" default_value="" custom_choice="0" tooltip="" id="8" />
+                            <Parameter name="clients" inherits_from_parent="0" content_type="3" value="nao;" default_value="" custom_choice="0" tooltip="List the client robot ip address / robot host name. Place ; for listing the next one. Example:&#x0A;nao1.local;nao2.local&#x0A;" id="9" />
+                            <Parameter name="remove app at termination" inherits_from_parent="0" content_type="0" value="0" default_value="1" tooltip="" id="10" />
+                            <Parameter name="fourceUpdate" inherits_from_parent="0" content_type="0" value="1" default_value="0" tooltip="" id="11" />
+                        </Box>
+                        <Box name="Say" id="2" localization="8" tooltip="Say some text. Note that you must open the box to enter the text." x="325" y="246">
+                            <bitmap>media/images/box/interaction/say.png</bitmap>
+                            <script language="4">
+                                <content>
+                                    <![CDATA[class MyClass(GeneratedClass):
+    def __init__(self):
+        GeneratedClass.__init__(self, False)
+
+    def onLoad(self):
+        self.bIsRunning = False
+
+    def onUnload(self):
+        self.bIsRunning = False
+
+    def onInput_onStart(self):
+        self.bIsRunning = True
+
+    def onInput_onStop(self):
+        if( self.bIsRunning ):
+            self.onUnload()
+            self.onStopped()]]>
+</content>
+                            </script>
+                            <Input name="onLoad" type="1" type_size="1" nature="0" inner="1" tooltip="Signal sent when Diagram is loaded." id="1" />
+                            <Input name="onStart" type="1" type_size="1" nature="2" inner="0" tooltip="Box behavior starts when a signal is received on this Input." id="2" />
+                            <Input name="onStop" type="1" type_size="1" nature="3" inner="0" tooltip="Box behavior stops when a signal is received on this Input." id="3" />
+                            <Output name="onStopped" type="1" type_size="1" nature="1" inner="0" tooltip="Signal sent when box behavior is finished or stopped." id="4" />
+                            <Parameter name="Voice shaping (%)" inherits_from_parent="0" content_type="1" value="100" default_value="100" min="50" max="150" tooltip='Used to modify at runtime the voice feature (tone, speed). In a slighty&#x0A;different way than pitch and speed, it gives a kind of &quot;gender or age&#x0A;modification&quot; effect.&#x0A;&#x0A;For instance, a quite good male derivation of female voice can be&#x0A;obtained setting this parameter to 78%.&#x0A;&#x0A;Note: For a better effect, you can compensate this parameter with the&#x0A;speed parameter. For example, if you want to decrease by 20% the voice&#x0A;shaping, you will have to increase by 20% the speed to keep a constant&#x0A;average speed.&#x0A;&#x0A;!Warning! This feature is not available yet in Japanese, Chinese and Korean.' id="5" />
+                            <Parameter name="Speed (%)" inherits_from_parent="0" content_type="1" value="100" default_value="100" min="50" max="200" tooltip="Changes the speed of the voice.&#x0A;&#x0A;Note: For a better effect, you can compensate this parameter with the voice&#x0A;shaping parameter. For example, if you want to increase by 20% the speed, you&#x0A;will have to decrease by 20% the voice shaping to keep a constant average&#x0A;speed.&#x0A;&#x0A;!Warning! This feature is not available yet in Japanese, Chinese and Korean." id="6" />
+                            <Timeline enable="0">
+                                <BehaviorLayer name="behavior_layer1">
+                                    <BehaviorKeyframe name="keyframe1" index="1">
+                                        <Diagram>
+                                            <Box name="Say Text" id="2" localization="8" tooltip="Say the text received on its input." x="422" y="65">
+                                                <bitmap>media/images/box/interaction/say.png</bitmap>
+                                                <script language="4">
+                                                    <content>
+                                                        <![CDATA[import time
+
+class MyClass(GeneratedClass):
+    def __init__(self):
+        GeneratedClass.__init__(self, False)
+        self.tts = ALProxy('ALTextToSpeech')
+        self.ttsStop = ALProxy('ALTextToSpeech', True) #Create another proxy as wait is blocking if audioout is remote
+
+    def onLoad(self):
+        self.bIsRunning = False
+        self.ids = []
+
+    def onUnload(self):
+        for id in self.ids:
+            try:
+                self.ttsStop.stop(id)
+            except:
+                pass
+        while( self.bIsRunning ):
+            time.sleep( 0.2 )
+
+    def onInput_onStart(self, p):
+        self.bIsRunning = True
+        try:
+            sentence = "\RSPD="+ str( self.getParameter("Speed (%)") ) + "\ "
+            sentence += "\VCT="+ str( self.getParameter("Voice shaping (%)") ) + "\ "
+            sentence += str(p)
+            sentence +=  "\RST\ "
+            id = self.tts.post.say(str(sentence))
+            self.ids.append(id)
+            self.tts.wait(id, 0)
+        finally:
+            try:
+                self.ids.remove(id)
+            except:
+                pass
+            if( self.ids == [] ):
+                self.onStopped() # activate output of the box
+                self.bIsRunning = False
+
+    def onInput_onStop(self):
+        self.onUnload()]]>
+</content>
+                                                </script>
+                                                <Input name="onLoad" type="1" type_size="1" nature="0" inner="1" tooltip="Signal sent when Diagram is loaded." id="1" />
+                                                <Input name="onStart" type="3" type_size="1" nature="2" inner="0" tooltip="Box behavior starts when a signal is received on this Input." id="2" />
+                                                <Input name="onStop" type="1" type_size="1" nature="3" inner="0" tooltip="Box behavior stops when a signal is received on this Input." id="3" />
+                                                <Output name="onStopped" type="1" type_size="1" nature="1" inner="0" tooltip="Signal sent when Box behavior is finished." id="4" />
+                                                <Parameter name="Voice shaping (%)" inherits_from_parent="1" content_type="1" value="100" default_value="100" min="50" max="150" tooltip='Used to modify at runtime the voice feature (tone, speed). In a slighty&#x0A;different way than pitch and speed, it gives a kind of &quot;gender or age&#x0A;modification&quot; effect.&#x0A;&#x0A;For instance, a quite good male derivation of female voice can be&#x0A;obtained setting this parameter to 78%.&#x0A;&#x0A;Note: For a better effect, you can compensate this parameter with the&#x0A;speed parameter. For example, if you want to decrease by 20% the voice&#x0A;shaping, you will have to increase by 20% the speed to keep a constant&#x0A;average speed.' id="5" />
+                                                <Parameter name="Speed (%)" inherits_from_parent="1" content_type="1" value="100" default_value="100" min="50" max="200" tooltip="Changes the speed of the voice.&#x0A;&#x0A;Note: For a better effect, you can compensate this parameter with the voice&#x0A;shaping parameter. For example, if you want to increase by 20% the speed, you&#x0A;will have to decrease by 20% the voice shaping to keep a constant average&#x0A;speed." id="6" />
+                                            </Box>
+                                            <Box name="Localized Text" id="5" localization="8" tooltip="Send on the output the text associated with the robot&apos;s current voice language.&#x0A;You can display and edit the text associated with any language by&#x0A;selecting the language in the combobox.&#x0A;&#x0A;!!Warning!! The text sent on the output is NOT the displayed one but the one&#x0A;associated with the robot&apos;s current voice language." plugin="localizationbox_plugin" x="114" y="68">
+                                                <bitmap>media/images/box/interaction/vocabulary.png</bitmap>
+                                                <script language="4">
+                                                    <content>
+                                                        <![CDATA[# /!\ Generated content. Do not edit!
+class MyClass(GeneratedClass):
+	def __init__(self):
+		try: # disable autoBind
+			GeneratedClass.__init__(self, False)
+		except TypeError: # if NAOqi < 1.14
+			GeneratedClass.__init__( self )
+
+		self.tts = ALProxy("ALTextToSpeech")
+		self.sentences = {
+			"Chinese" : " 你好 ",
+			"English" : " Preparation ready. Touch head sensor to start.\n ",
+			"French" : " Bonjour ",
+			"German" : " Hallo ",
+			"Italian" : " Ciao ",
+			"Japanese" : " 準備、完了。\n頭をタッチして開始させてください。\n ",
+			"Korean" : " 안녕하세요 ",
+			"Portuguese" : " Olá ",
+			"Brazilian" : " Olá ",
+			"Spanish" : " Hola ",
+			"Arabic" : " مرحبا ",
+			"Polish" : " Cześć ",
+			"Czech" : " Ahoj ",
+			"Dutch" : " Hallo ",
+			"Danish" : " Hej ",
+			"Finnish" : " Hei ",
+			"Swedish" : " Hallå ",
+			"Russian" : " Привет ",
+			"Turkish" : " Merhaba "
+		}
+
+	def onInput_onStart(self):
+		sDefaultLang = self.tts.getLanguage()
+		self.onStopped(self.sentences[sDefaultLang])]]>
+</content>
+                                                </script>
+                                                <pluginContent>
+                                                    <chinese>
+                                                        <![CDATA[你好]]>
+</chinese>
+                                                    <english>
+                                                        <![CDATA[Preparation ready. Touch head sensor to start.
+]]>
+</english>
+                                                    <french>
+                                                        <![CDATA[Bonjour]]>
+</french>
+                                                    <german>
+                                                        <![CDATA[Hallo]]>
+</german>
+                                                    <italian>
+                                                        <![CDATA[Ciao]]>
+</italian>
+                                                    <japanese>
+                                                        <![CDATA[準備、完了。
+頭をタッチして開始させてください。
+]]>
+</japanese>
+                                                    <korean>
+                                                        <![CDATA[안녕하세요]]>
+</korean>
+                                                    <portuguese>
+                                                        <![CDATA[Olá]]>
+</portuguese>
+                                                    <brazilian>
+                                                        <![CDATA[Olá]]>
+</brazilian>
+                                                    <spanish>
+                                                        <![CDATA[Hola]]>
+</spanish>
+                                                    <arabic>
+                                                        <![CDATA[مرحبا]]>
+</arabic>
+                                                    <polish>
+                                                        <![CDATA[Cześć]]>
+</polish>
+                                                    <czech>
+                                                        <![CDATA[Ahoj]]>
+</czech>
+                                                    <dutch>
+                                                        <![CDATA[Hallo]]>
+</dutch>
+                                                    <danish>
+                                                        <![CDATA[Hej]]>
+</danish>
+                                                    <finnish>
+                                                        <![CDATA[Hei]]>
+</finnish>
+                                                    <swedish>
+                                                        <![CDATA[Hallå]]>
+</swedish>
+                                                    <russian>
+                                                        <![CDATA[Привет]]>
+</russian>
+                                                    <turkish>
+                                                        <![CDATA[Merhaba]]>
+</turkish>
+                                                    <language>5</language>
+                                                </pluginContent>
+                                                <Input name="onLoad" type="1" type_size="1" nature="0" inner="1" tooltip="Signal sent when diagram is loaded." id="1" />
+                                                <Input name="onStart" type="1" type_size="1" nature="2" inner="0" tooltip="Data is sent on the output when this input is stimulated." id="2" />
+                                                <Output name="onStopped" type="3" type_size="1" nature="1" inner="0" tooltip="Data sent when asked." id="3" />
+                                            </Box>
+                                            <Link inputowner="0" indexofinput="4" outputowner="2" indexofoutput="4" />
+                                            <Link inputowner="5" indexofinput="2" outputowner="0" indexofoutput="2" />
+                                            <Link inputowner="2" indexofinput="2" outputowner="5" indexofoutput="3" />
+                                        </Diagram>
+                                    </BehaviorKeyframe>
+                                </BehaviorLayer>
+                            </Timeline>
+                            <Resource name="Speech" type="Lock" timeout="0" />
+                        </Box>
+                        <Link inputowner="0" indexofinput="4" outputowner="10" indexofoutput="6" />
+                        <Link inputowner="10" indexofinput="2" outputowner="8" indexofoutput="9" />
+                        <Link inputowner="10" indexofinput="5" outputowner="3" indexofoutput="7" />
+                        <Link inputowner="3" indexofinput="4" outputowner="10" indexofoutput="7" />
+                        <Link inputowner="4" indexofinput="9" outputowner="10" indexofoutput="8" />
+                        <Link inputowner="10" indexofinput="4" outputowner="0" indexofoutput="2" />
+                        <Link inputowner="4" indexofinput="2" outputowner="6" indexofoutput="4" />
+                        <Link inputowner="6" indexofinput="2" outputowner="10" indexofoutput="8" />
+                        <Link inputowner="1" indexofinput="2" outputowner="4" indexofoutput="4" />
+                        <Link inputowner="1" indexofinput="9" outputowner="10" indexofoutput="8" />
+                        <Link inputowner="3" indexofinput="2" outputowner="1" indexofoutput="4" />
+                        <Link inputowner="2" indexofinput="2" outputowner="3" indexofoutput="5" />
+                        <Link inputowner="8" indexofinput="2" outputowner="3" indexofoutput="5" />
+                    </Diagram>
+                </BehaviorKeyframe>
+            </BehaviorLayer>
+        </Timeline>
+    </Box>
+</ChoregrapheProject>

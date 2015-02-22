@@ -1,0 +1,21 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<package version="0.0.1" uuid="stageplay-5b95df">
+ <names>
+  <name lang="en_US">StagePlay</name>
+  <name lang="ja_JP">ステージプレイ</name>
+ </names>
+ <supportedLanguages>
+  <language>en_US</language>
+  <language>ja_JP</language>
+ </supportedLanguages>
+ <descriptionLanguages>
+  <language>en_US</language>
+  <language>ja_JP</language>
+ </descriptionLanguages>
+ <contents>
+  <behaviorContent path="behavior_1">
+   <nature>interactive</nature>
+   <permissions/>
+  </behaviorContent>
+ </contents>
+</package>
