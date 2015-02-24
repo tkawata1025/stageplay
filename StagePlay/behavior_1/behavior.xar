@@ -19,7 +19,7 @@
                             <bitmap>media/images/box/box-python-script.png</bitmap>
                             <script language="4">
                                 <content>
-                                    <![CDATA[import qi, time
+                                    <![CDATA[import qi, time, re
 
 class MyClass(GeneratedClass):
     def __init__(self):
@@ -29,19 +29,18 @@ class MyClass(GeneratedClass):
         self.sclients = []
 
     def onUnload(self):
-        import re
 
-        path = self.getParameter("behavior path to execute")
-        uuid = self.getParameter("uuid of the application")
+        path = self.getParameter("behavior path to execute").strip()
+        uuid = self.getParameter("uuid of the application").strip()
         removeApp = self.getParameter("remove app at termination")
 
         self.logger.info("Stop running client behaviors..")
         session = qi.Session()
         for client in self.sclients:
             self.logger.info("Stopping behavior running at %s" % client)
-            if isinstance(client, str) and len(client) > 0:
+            if isinstance(client, str) and len(client.strip()) > 0:
 
-                clientAddr = client
+                clientAddr = client.strip()
                 if re.match(".*\..*\..*\..*", clientAddr) == None:
                     clientAddr = clientAddr + ".local"
 
@@ -53,7 +52,8 @@ class MyClass(GeneratedClass):
                 success = False
                 while retry > 0 and success == False:
                     try:
-                        bm.stopBehavior(path)
+                        if len(path) > 0:
+                            bm.stopBehavior(path)
                         success = True
                     except Exception as e:
                         self.logger.info("  ... failed. retrying...")
@@ -72,6 +72,8 @@ class MyClass(GeneratedClass):
                             self.logger.info("  ... failed. retrying...")
                             retry = retry - 1
 
+                session.close()
+
 
     def onInput_onStart(self):
 
@@ -79,26 +81,24 @@ class MyClass(GeneratedClass):
 
         session = qi.Session()
 
-        pkg = self.getParameter("package file (.pkg)")
-        uuid = self.getParameter("uuid of the application")
-        path = self.getParameter("behavior path to execute")
+        pkg = self.getParameter("package file (.pkg)").strip()
+        uuid = self.getParameter("uuid of the application").strip()
+        path = self.getParameter("behavior path to execute").strip()
         clients = self.getParameter("clients").split(";")
         self.logger.info("Installing app %s to clients.." % pkg)
 
         fclients = []
-        if len(pkg) > 0 and len(uuid) > 0 and len(path) > 0:
+        if len(pkg) > 0 and len(uuid) > 0:
             pkgPath = framemanager.getBehaviorPath(self.behaviorId) + pkg
             for client in clients:
 
-                client = str(client).strip()
-                if len(client) == 0:
-                    continue
-
                 success = False
-                self.logger.info("Installing to %s" % client)
-                if isinstance(client, str) and len(client) > 0:
-
-                    url = "tcp://" + client + ":9559"
+                self.logger.info("Installing to (%s)" % client)
+                if isinstance(client, str) and len(client.strip()) > 0:
+                    clientAddr = client.strip()
+                    if re.match(".*\..*\..*\..*", clientAddr) == None:
+                        clientAddr = clientAddr.strip() + ".local"
+                    url = "tcp://" + clientAddr + ":9559"
                     session.connect(url)
                     pm = session.service("PackageManager")
 
@@ -133,11 +133,14 @@ class MyClass(GeneratedClass):
                         self.logger.info("Run behavior %s" % path)
                         while retry > 0 and success == False:
                             try:
-                                bm.startBehavior(path)
+                                if len(path) > 0:
+                                    bm.startBehavior(path)
                                 success = True
                             except Exception as e:
                                 self.logger.info("  ... Running failed. retrying...")
                                 retry = retry - 1
+
+                    session.close()
 
                 if success:
                     self.sclients.append(client)
@@ -165,7 +168,7 @@ class MyClass(GeneratedClass):
                             <Parameter name="behavior path to execute" inherits_from_parent="0" content_type="3" value="stageplayclient/behavior_1" default_value="" custom_choice="0" tooltip="" id="8" />
                             <Parameter name="clients" inherits_from_parent="0" content_type="3" value="nao;" default_value="" custom_choice="0" tooltip="List the client robot ip address / robot host name. Place ; for listing the next one. Example:&#x0A;nao1.local;nao2.local&#x0A;" id="9" />
                             <Parameter name="remove app at termination" inherits_from_parent="0" content_type="0" value="1" default_value="1" tooltip="" id="10" />
-                            <Parameter name="fourceUpdate" inherits_from_parent="0" content_type="0" value="0" default_value="0" tooltip="" id="11" />
+                            <Parameter name="fourceUpdate" inherits_from_parent="0" content_type="0" value="1" default_value="0" tooltip="" id="11" />
                         </Box>
                         <Box name="RemoteSynchronizerServer (1)" id="3" localization="8" tooltip="Enter tooltip here" x="140" y="204">
                             <bitmap>media/images/box/box-diagram.png</bitmap>
@@ -682,7 +685,7 @@ class MyClass(GeneratedClass):
                             <bitmap>media/images/box/box-python-script.png</bitmap>
                             <script language="4">
                                 <content>
-                                    <![CDATA[import qi, time
+                                    <![CDATA[import qi, time, re
 
 class MyClass(GeneratedClass):
     def __init__(self):
@@ -692,7 +695,6 @@ class MyClass(GeneratedClass):
         self.sclients = []
 
     def onUnload(self):
-        import re
 
         path = self.getParameter("behavior path to execute").strip()
         uuid = self.getParameter("uuid of the application").strip()
@@ -702,9 +704,9 @@ class MyClass(GeneratedClass):
         session = qi.Session()
         for client in self.sclients:
             self.logger.info("Stopping behavior running at %s" % client)
-            if isinstance(client, str) and len(client) > 0:
+            if isinstance(client, str) and len(client.strip()) > 0:
 
-                clientAddr = client
+                clientAddr = client.strip()
                 if re.match(".*\..*\..*\..*", clientAddr) == None:
                     clientAddr = clientAddr + ".local"
 
@@ -736,6 +738,8 @@ class MyClass(GeneratedClass):
                             self.logger.info("  ... failed. retrying...")
                             retry = retry - 1
 
+                session.close()
+
 
     def onInput_onStart(self):
 
@@ -754,15 +758,13 @@ class MyClass(GeneratedClass):
             pkgPath = framemanager.getBehaviorPath(self.behaviorId) + pkg
             for client in clients:
 
-                client = str(client).strip()
-                if len(client) == 0:
-                    continue
-
                 success = False
-                self.logger.info("Installing to %s" % client)
-                if isinstance(client, str) and len(client) > 0:
-
-                    url = "tcp://" + client + ":9559"
+                self.logger.info("Installing to (%s)" % client)
+                if isinstance(client, str) and len(client.strip()) > 0:
+                    clientAddr = client.strip()
+                    if re.match(".*\..*\..*\..*", clientAddr) == None:
+                        clientAddr = clientAddr.strip() + ".local"
+                    url = "tcp://" + clientAddr + ":9559"
                     session.connect(url)
                     pm = session.service("PackageManager")
 
@@ -804,6 +806,8 @@ class MyClass(GeneratedClass):
                                 self.logger.info("  ... Running failed. retrying...")
                                 retry = retry - 1
 
+                    session.close()
+
                 if success:
                     self.sclients.append(client)
                 else:
@@ -829,7 +833,7 @@ class MyClass(GeneratedClass):
                             <Parameter name="uuid of the application" inherits_from_parent="0" content_type="3" value="takujianimations" default_value="" custom_choice="0" tooltip="" id="7" />
                             <Parameter name="behavior path to execute" inherits_from_parent="0" content_type="3" value="" default_value="" custom_choice="0" tooltip="" id="8" />
                             <Parameter name="clients" inherits_from_parent="0" content_type="3" value="nao;" default_value="" custom_choice="0" tooltip="List the client robot ip address / robot host name. Place ; for listing the next one. Example:&#x0A;nao1.local;nao2.local&#x0A;" id="9" />
-                            <Parameter name="remove app at termination" inherits_from_parent="0" content_type="0" value="0" default_value="1" tooltip="" id="10" />
+                            <Parameter name="remove app at termination" inherits_from_parent="0" content_type="0" value="1" default_value="1" tooltip="" id="10" />
                             <Parameter name="fourceUpdate" inherits_from_parent="0" content_type="0" value="1" default_value="0" tooltip="" id="11" />
                         </Box>
                         <Box name="Say" id="2" localization="8" tooltip="Say some text. Note that you must open the box to enter the text." x="325" y="246">
