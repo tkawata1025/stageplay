@@ -19,7 +19,7 @@
                             <bitmap>media/images/box/box-python-script.png</bitmap>
                             <script language="4">
                                 <content>
-                                    <![CDATA[import qi, time, re
+                                    <![CDATA[import qi, time, re, ftplib
 
 class MyClass(GeneratedClass):
     def __init__(self):
@@ -27,6 +27,9 @@ class MyClass(GeneratedClass):
 
     def onLoad(self):
         self.sclients = []
+        self.clientAppFolder = "/home/nao/"
+        self.clientFtpFolder = "/"
+        self.clientTempPkgFileName = "tmppkg.pkg"
 
     def onUnload(self):
 
@@ -90,6 +93,7 @@ class MyClass(GeneratedClass):
         fclients = []
         if len(pkg) > 0 and len(uuid) > 0:
             pkgPath = framemanager.getBehaviorPath(self.behaviorId) + pkg
+
             for client in clients:
 
                 success = False
@@ -98,11 +102,11 @@ class MyClass(GeneratedClass):
                     clientAddr = client.strip()
                     if re.match(".*\..*\..*\..*", clientAddr) == None:
                         clientAddr = clientAddr.strip() + ".local"
+
+                    installResult = False
                     url = "tcp://" + clientAddr + ":9559"
                     session.connect(url)
                     pm = session.service("PackageManager")
-
-                    installResult = False
 
                     if pm.hasPackage(uuid):
                         if self.getParameter("fourceUpdate"):
@@ -114,31 +118,42 @@ class MyClass(GeneratedClass):
                             self.logger.info("%s already have the app. Not install..." % client)
                             installResult = True
 
-                    retry = 3
-                    while retry > 0 and installResult == False:
-                        installResult = pm.install(pkgPath)
-                        if installResult == False:
-                            time.sleep(1)
-                            retry = retry - 1
-                            self.logger.info("  ... Installation failed. retrying...")
+                    if installResult == False:
+                        ftp = ftplib.FTP(clientAddr)
+                        ftp.login("nao", "nao")   #TODO consider the case the password is modified
+
+                        pkgFile = open(pkgPath,"rb")
+                        ftp.cwd(self.clientFtpFolder)
+                        ftp.storbinary("STOR " + self.clientTempPkgFileName, pkgFile)
+                        pkgFile.close()
+
+                        ftp.quit()
+
+                        retry = 3
+                        while retry > 0 and installResult == False:
+                            installResult = pm.install(self.clientAppFolder + self.clientTempPkgFileName)
+                            if installResult == False:
+                                time.sleep(1)
+                                retry = retry - 1
+                                self.logger.info("  ... Installation failed. retrying...")
+
+                            if installResult:
+                                self.logger.info(" ...Installation success!")
+                            else:
+                                self.logger.info(" ...Installation failed!")
 
                         if installResult:
-                            self.logger.info(" ...Installation success!")
-                        else:
-                            self.logger.info(" ...Installation failed!")
-
-                    if installResult:
-                        bm = session.service("ALBehaviorManager")
-                        retry = 3
-                        self.logger.info("Run behavior %s" % path)
-                        while retry > 0 and success == False:
-                            try:
-                                if len(path) > 0:
-                                    bm.startBehavior(path)
-                                success = True
-                            except Exception as e:
-                                self.logger.info("  ... Running failed. retrying...")
-                                retry = retry - 1
+                            bm = session.service("ALBehaviorManager")
+                            retry = 3
+                            self.logger.info("Run behavior %s" % path)
+                            while retry > 0 and success == False:
+                                try:
+                                    if len(path) > 0:
+                                        bm.startBehavior(path)
+                                    success = True
+                                except Exception as e:
+                                    self.logger.info("  ... Running failed. retrying...")
+                                    retry = retry - 1
 
                     session.close()
 
@@ -262,6 +277,7 @@ class MyClass(GeneratedClass):
 
         for client in cs:
             if isinstance(client, str) and len(client) > 0:
+                client = client.strip()
                 retry = 10
                 cmemory = None
                 clientAddr = client
@@ -678,14 +694,14 @@ class MyClass(GeneratedClass):
                             <Input name="onStart" type="1" type_size="1" nature="2" inner="0" tooltip="Start the Wait box with the configured timeout value." id="2" />
                             <Input name="onStop" type="1" type_size="1" nature="3" inner="0" tooltip="Stop the wait and stimulate the output." id="3" />
                             <Output name="timerOutput" type="1" type_size="1" nature="1" inner="0" tooltip="Send a bang once time set in parameters is elapsed, or if the box is stopped and the appropriate parameter is set." id="4" />
-                            <Parameter name="Timeout (s)" inherits_from_parent="0" content_type="2" value="1" default_value="1" min="0" max="5000" tooltip="Duration the box waits before stimulating the output." id="5" />
+                            <Parameter name="Timeout (s)" inherits_from_parent="0" content_type="2" value="5" default_value="1" min="0" max="5000" tooltip="Duration the box waits before stimulating the output." id="5" />
                             <Parameter name="Trigger timerOutput if cancelled" inherits_from_parent="0" content_type="0" value="0" default_value="1" tooltip="If the box is currently waiting and cancelled, output will be stimulated." id="6" />
                         </Box>
                         <Box name="client setup - asset files" id="1" localization="8" tooltip="This box contains a basic python script and can be used to create any python script box you would like.&#x0A;&#x0A;To edit its script, double-click on it." x="542" y="46">
                             <bitmap>media/images/box/box-python-script.png</bitmap>
                             <script language="4">
                                 <content>
-                                    <![CDATA[import qi, time, re
+                                    <![CDATA[import qi, time, re, ftplib
 
 class MyClass(GeneratedClass):
     def __init__(self):
@@ -693,6 +709,9 @@ class MyClass(GeneratedClass):
 
     def onLoad(self):
         self.sclients = []
+        self.clientAppFolder = "/home/nao/"
+        self.clientFtpFolder = "/"
+        self.clientTempPkgFileName = "tmppkg.pkg"
 
     def onUnload(self):
 
@@ -756,6 +775,7 @@ class MyClass(GeneratedClass):
         fclients = []
         if len(pkg) > 0 and len(uuid) > 0:
             pkgPath = framemanager.getBehaviorPath(self.behaviorId) + pkg
+
             for client in clients:
 
                 success = False
@@ -764,11 +784,11 @@ class MyClass(GeneratedClass):
                     clientAddr = client.strip()
                     if re.match(".*\..*\..*\..*", clientAddr) == None:
                         clientAddr = clientAddr.strip() + ".local"
+
+                    installResult = False
                     url = "tcp://" + clientAddr + ":9559"
                     session.connect(url)
                     pm = session.service("PackageManager")
-
-                    installResult = False
 
                     if pm.hasPackage(uuid):
                         if self.getParameter("fourceUpdate"):
@@ -780,31 +800,42 @@ class MyClass(GeneratedClass):
                             self.logger.info("%s already have the app. Not install..." % client)
                             installResult = True
 
-                    retry = 3
-                    while retry > 0 and installResult == False:
-                        installResult = pm.install(pkgPath)
-                        if installResult == False:
-                            time.sleep(1)
-                            retry = retry - 1
-                            self.logger.info("  ... Installation failed. retrying...")
+                    if installResult == False:
+                        ftp = ftplib.FTP(clientAddr)
+                        ftp.login("nao", "nao")   #TODO consider the case the password is modified
+
+                        pkgFile = open(pkgPath,"rb")
+                        ftp.cwd(self.clientFtpFolder)
+                        ftp.storbinary("STOR " + self.clientTempPkgFileName, pkgFile)
+                        pkgFile.close()
+
+                        ftp.quit()
+
+                        retry = 3
+                        while retry > 0 and installResult == False:
+                            installResult = pm.install(self.clientAppFolder + self.clientTempPkgFileName)
+                            if installResult == False:
+                                time.sleep(1)
+                                retry = retry - 1
+                                self.logger.info("  ... Installation failed. retrying...")
+
+                            if installResult:
+                                self.logger.info(" ...Installation success!")
+                            else:
+                                self.logger.info(" ...Installation failed!")
 
                         if installResult:
-                            self.logger.info(" ...Installation success!")
-                        else:
-                            self.logger.info(" ...Installation failed!")
-
-                    if installResult:
-                        bm = session.service("ALBehaviorManager")
-                        retry = 3
-                        self.logger.info("Run behavior %s" % path)
-                        while retry > 0 and success == False:
-                            try:
-                                if len(path) > 0:
-                                    bm.startBehavior(path)
-                                success = True
-                            except Exception as e:
-                                self.logger.info("  ... Running failed. retrying...")
-                                retry = retry - 1
+                            bm = session.service("ALBehaviorManager")
+                            retry = 3
+                            self.logger.info("Run behavior %s" % path)
+                            while retry > 0 and success == False:
+                                try:
+                                    if len(path) > 0:
+                                        bm.startBehavior(path)
+                                    success = True
+                                except Exception as e:
+                                    self.logger.info("  ... Running failed. retrying...")
+                                    retry = retry - 1
 
                     session.close()
 
@@ -1046,13 +1077,13 @@ class MyClass(GeneratedClass):
                         <Link inputowner="3" indexofinput="4" outputowner="10" indexofoutput="7" />
                         <Link inputowner="4" indexofinput="9" outputowner="10" indexofoutput="8" />
                         <Link inputowner="10" indexofinput="4" outputowner="0" indexofoutput="2" />
-                        <Link inputowner="4" indexofinput="2" outputowner="6" indexofoutput="4" />
                         <Link inputowner="6" indexofinput="2" outputowner="10" indexofoutput="8" />
                         <Link inputowner="1" indexofinput="2" outputowner="4" indexofoutput="4" />
                         <Link inputowner="1" indexofinput="9" outputowner="10" indexofoutput="8" />
                         <Link inputowner="3" indexofinput="2" outputowner="1" indexofoutput="4" />
                         <Link inputowner="2" indexofinput="2" outputowner="3" indexofoutput="5" />
                         <Link inputowner="8" indexofinput="2" outputowner="3" indexofoutput="5" />
+                        <Link inputowner="4" indexofinput="2" outputowner="6" indexofoutput="4" />
                     </Diagram>
                 </BehaviorKeyframe>
             </BehaviorLayer>
